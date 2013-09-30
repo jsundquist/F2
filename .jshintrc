@@ -18,5 +18,6 @@
 	"shadow": false,
 	"sub": true,
 	"undef": true,
-	"unused": "vars"
+	"unused": "vars",
+	"loopfunc": true
 }

@@ -627,4 +627,43 @@ describe('F2.registerApps - rendering', function() {
 			expect(F2.inlineScriptsEvaluated).toBe(true);
 		});	
 	});
+
+	it('should allow the container to provide a custom "loadScripts" and "loadStyles" function', function() {
+		var didCallScripts = false;
+		var didCallStyles = false;
+		var didRender = false;
+
+		F2.init({
+			loadScripts: function(scripts, inlines, cb) {
+				didCallScripts = true;
+				cb();
+			},
+			loadStyles: function(styles, cb) {
+				didCallStyles = true;
+				cb();
+			}
+		});
+
+		F2.AppHandlers.on(
+			F2.AppHandlers.getToken(),
+			F2.Constants.AppHandlers.APP_RENDER, function(appConfig, appHtml) {
+				appConfig.root = $("<div />").append(appHtml)[0];
+				document.body.appendChild(appConfig.root);
+				didRender = true;
+			}
+		);
+
+		F2.registerApps([{
+			appId: TEST_APP_ID,
+			manifestUrl: TEST_MANIFEST_URL
+		}]);
+
+		waitsFor(function() {
+			return didRender;
+		}, 3000);
+
+		runs(function() {
+			expect(didCallScripts && didCallStyles).toBe(true);
+		});
+	});
 });
