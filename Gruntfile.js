@@ -3,7 +3,8 @@ module.exports = function(grunt) {
 	var handlebars = require('handlebars'),
 		moment = require('moment'),
 		pkg = grunt.file.readJSON('package.json'),
-		semver = require('semver');
+		semver = require('semver'),
+		fs = require('fs');
 
 	// TODO: Remove Handlebars dependency and use the built-in grunt templating
 	// Handlebars helpers
@@ -296,6 +297,21 @@ module.exports = function(grunt) {
 				src: 'sdk/f2.min.js',
 				prefix: 'sdk/'
 			}
+		},
+		http: {
+			getDocsLayout: {
+				options: {
+					url: 'http://localhost:8201/api/layout/docs',
+					json: true,
+					strictSSL: false,
+					callback: function(err, res, body){
+						var log = grunt.log.write('Retrieved doc layout...')
+						grunt.config.set('docs-layout',body);
+						log.ok();
+						grunt.task.run('markitdown');
+					}
+				}
+			}
 		}
 	});
 
@@ -309,6 +325,8 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-less');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-express');
+	grunt.loadNpmTasks('grunt-http');
+
 
 	// Register tasks
 	grunt.registerTask('fix-sourcemap', 'Fixes the source map file', function() {
@@ -321,9 +339,16 @@ module.exports = function(grunt) {
 		grunt.file.write(dest, rawMap);
 	});
 
-	grunt.registerTask('markitdown', 'Compiles the spec documentation with Markitdown', function() {
+	grunt.registerTask('markitdown', 'Compiles the specification documentation with Markitdown', function() {
 		var done = this.async(),
-			log = grunt.log.write('Generating spec documentation...');
+			log = grunt.log.write('Generating specification documentation...'),
+			templateJson = grunt.config('docs-layout'); //get from http stage
+
+		//save as HTML for markitdown/pandoc step
+		grunt.file.write('./docs/src/template/head.html', templateJson.head);
+		grunt.file.write('./docs/src/template/nav.html', templateJson.nav);
+		grunt.file.write('./docs/src/template/footer.html', templateJson.footer);
+
 		grunt.util.spawn(
 			{
 				cmd: 'markitdown',
@@ -473,7 +498,6 @@ module.exports = function(grunt) {
 			done();
 		});
 	});
-
 
 	grunt.registerTask('docs', ['less', 'yuidoc', 'copy:docs', 'markitdown', 'clean:docs']);
 	grunt.registerTask('github-pages', ['copy:github-pages', 'clean:github-pages']);
